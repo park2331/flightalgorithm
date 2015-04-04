@@ -188,7 +188,93 @@ void steerToTarget(float headingDes)
 	//Writes steering scale value of previous loop to "old" array value
 	steeringScale[1] = steeringScale[0];
 
-	//TODO RESUME LINE 224
+
+	// Resets steeringScale to starting value when turn direction chagnes as a result of crossing over desired heading, or in heading deadband
+	// to prepare for next turn AFTER leaving deadband
+	if (!steeringActive || (turnedLeft[0] == 1 && headingDev > HEADING_DEADBAND) || (turnedRight[0] == 1 && headingDev < -HEADING DEADBAND))
+	{
+		steeringScale[0] = 0;
+		steeringScale[1] = 0;
+	}
+
+	//Write previous turn flag values to "old" array values
+	turnedLeft[1] = turnedLeft[0];
+	turnedRight[1] = turnedRight[0];
+
+
+	//Calculates new steeringScale value based on desired yaw rate and achieved delta yaw angle during previous control loop
+	//If yaw rate is within deadband, or enough loops haven't occurred before update, steeringScale[0] is unchanged
+
+	// IF NUM_LOOPS_BEFORE_SCALING_TURN = 1, steering value is changed every loop; if = 2, changed every 2 loops, and so on
+	if (steerDelayCounter % NUM_LOOPS_BEFORE_SCALING_TURN == 0)
+	{
+	
+		// Don't scale unless +/- yaw rate erro is greater than deadband value AND we are not in the heading deadband
+		if((fabs(achievedYawRate[0] - desiredYawRate[0]) > DESIRED_YAW_DEADBAND) && (fabs(headingDev) > HEADING_DEADBAND))
+		{
+			// In the case of different signs for desired yaw rate vs. achieved yaw rate, increase servo pull:
+
+			if((achievedYawRate[0] / desiredYawRate[0] < 0) && (fabs(desiredYawRate[0] - achievedYawRate[0]) < FINE_SCALING_CUTOFF_DEG_SEC))
+			{
+				// For yaw rate deviation less than cutoff threshold, use FINE scaling
+				steeringScale[0] = steeringScale[1] + FINE_SCALING_STEP_PERCENT;
+			}
+
+			else if ((achievedYawRate[0] / desiredYawRate[0] < 0) && (fabs(desiredYawRate[0] - achievedYawRate[0]) >= FINE_SCALING_CUTOFF_DEG_SEC))
+			{
+				// For yaw rate deviation greater than cutoff threshold, use COARSE scaling
+				steeringScale[0] = steeringScale[1] + COARSE_SCALING_STEP_PERCENT;
+
+			}
+
+			// In the case of desired and achieved yaw rate both positive or both negative:
+			else if(fabs(desiredYawRate[0] - achievedYawRate[0]) < FINE_SCALING_CUTOFF_DEG_SEC)
+			{
+				// For yaw rate deviation less than cutoff threshold, use FINE scaling
+				if (( achievedYawRate[0] >= 0 && desiredYawRate[0] >= 0 ) && (achievedYawRate[0] < desiredYawRate[0]))
+				{
+					// Increase yaw rate, fine stepping
+					steeringScale[0] = steeringScale[1] + FINE_SCALING_STEP_PERCENT;
+				}
+				// Increase yaw rate, fine stepping
+				else if (( achievedYawRate[0] < 0 && desiredYawRate[0] < 0 ) && (achievedYawRate[0] >= desiredYawRate[0]))
+				{
+					steeringScale[0] = steeringScale[1] + FINE_SCALING_STEP_PERCENT;
+				}
+				// Decrease yaw rate, fine stepping
+				else
+				{
+					steeringScale[0] = steeringScale[1]  - (FINE_SCALING_STEP_PERCENT * FINE_SCALING_UNWIND_GAIN);
+				}
+			}
+			// For yaw rate deviation more than cutoff threshold, use COARSE scaling
+			else if(fabs(desiredYawrate[0] - achievedYawRate[0]) >= fine_scaling_cutoff_deg_sec)
+			{
+				// Increase yaw rate, coarse stepping
+				if((achivedYawrate[0] >= 0 && desiredYawRate[0] >= 0) && (achivedYawRate[0] < desiredYawRate[0]))
+				{
+					steeringScale[0] = steeringScale[1] + COARSE_SCALING_STEP_PERCENT;
+				}
+				// Increase yaw rate, coarse stepping
+				else if((achievedYawRate[0] < 0 && desiredYawRate[0] < 0) && (achievedYawRate[0] < desiredYawRate[0]))
+				{
+					steeringScale[0] = steeringScale[1] - COARSE_SCALING_STEP_PERCENT;
+				}
+				// Decrease yaw rate, coarse stepping
+				else
+				{
+					steeringScale[0] = steeringScale[1] - (COARSE_SCALING_STEP_PERCENT - * COARSE_SCALING_UNWIND_GAIN);
+				}
+			}
+		}
+	}
+
+// TODO LINE 280
+
+
+
+
+
 
 }
 
